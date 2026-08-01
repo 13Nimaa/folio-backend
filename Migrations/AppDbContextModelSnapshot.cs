@@ -42,6 +42,8 @@ namespace BooksProject.Migrations
 
                     b.HasKey("id");
 
+                    b.HasIndex("GenreId");
+
                     b.ToTable("Books");
                 });
 
@@ -58,6 +60,22 @@ namespace BooksProject.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Genres");
+                });
+
+            modelBuilder.Entity("BooksProject.Models.Book", b =>
+                {
+                    b.HasOne("BooksProject.Models.Genre", "Genre")
+                        .WithMany("Books")
+                        .HasForeignKey("GenreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Genre");
+                });
+
+            modelBuilder.Entity("BooksProject.Models.Genre", b =>
+                {
+                    b.Navigation("Books");
                 });
 #pragma warning restore 612, 618
         }

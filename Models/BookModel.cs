@@ -1,6 +1,3 @@
-
-using BooksProject.Models;
-
 namespace BooksProject.Models;
 
 public class Book
@@ -14,4 +11,5 @@ public class Book
     public DateOnly PublishedDate {get; set;}
 
     public int GenreId {get; set;}
+    public required Genre Genre { get; set; }
 }
