@@ -645,3 +645,11 @@ E:\BooksProject\.tmpbuild\runtimes\win-arm\native\e_sqlite3.dll
 E:\BooksProject\.tmpbuild\runtimes\win-arm64\native\e_sqlite3.dll
 E:\BooksProject\.tmpbuild\runtimes\win-x64\native\e_sqlite3.dll
 E:\BooksProject\.tmpbuild\runtimes\win-x86\native\e_sqlite3.dll
+E:\BooksProject\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+E:\BooksProject\bin\Debug\net10.0\Microsoft.IdentityModel.Abstractions.dll
+E:\BooksProject\bin\Debug\net10.0\Microsoft.IdentityModel.JsonWebTokens.dll
+E:\BooksProject\bin\Debug\net10.0\Microsoft.IdentityModel.Logging.dll
+E:\BooksProject\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.dll
+E:\BooksProject\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+E:\BooksProject\bin\Debug\net10.0\Microsoft.IdentityModel.Tokens.dll
+E:\BooksProject\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll
