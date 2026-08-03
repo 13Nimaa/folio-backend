@@ -1,6 +1,38 @@
-@BooksProject_HostAddress = http://localhost:5097
-
-GET {{BooksProject_HostAddress}}/weatherforecast/
-Accept: application/json
+GET http://localhost:5097/books
 
 ###
+GET http://localhost:5097/genres
+
+
+###
+GET http://localhost:5097/books?page=1&pageSize=10
+
+###
+GET http://localhost:5097/books?page=2&pageSize=10&genreId=14
+
+###
+GET http://localhost:5097/books/2
+
+###
+
+Post http://localhost:5097/books
+Content-Type:  application/json
+
+{
+    "Title": "Test 2",
+    "GenreId" : 14,
+    "Price" : 40.99,
+    "Description": "Nima test 2",
+    "PublishedDate": "2010-10-10"
+}
+###
+PUT  http://localhost:5097/books/2
+Content-Type:  application/json
+
+{
+    "Title": "Test 3",
+    "GenreId" : 14,
+    "Price" : 20.99,
+    "Description": "Nima test 3",
+    "PublishedDate": "2010-10-10"
+}

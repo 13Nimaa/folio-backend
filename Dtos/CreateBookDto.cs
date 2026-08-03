@@ -4,7 +4,7 @@ namespace BooksProject.Dtos;
 
 public sealed record CreateBookDto(
     [Required, StringLength(50)] string Title,
-    [StringLength(100)] string? Description,
+    [Required, StringLength(100)] string Description,
     [Range(0, 50)] decimal Price,
     DateOnly PublishedDate,
     [Range(1, int.MaxValue)] int GenreId);
