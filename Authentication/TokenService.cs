@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using BooksProject.Models;
 using Microsoft.Extensions.Options;
@@ -44,4 +45,13 @@ public class TokenService(IOptions<JwtOptions> options)
 
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
+    public string CreateRefreshToken()
+{
+    var bytes = RandomNumberGenerator.GetBytes(64);
+
+    return Convert.ToBase64String(bytes);
+}
+
+    public DateTime RefreshTokenExpiresAt =>
+        DateTime.UtcNow.AddDays(jwtOptions.RefreshTokenExpiryDays);
 }

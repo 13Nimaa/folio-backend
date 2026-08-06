@@ -1,9 +1,9 @@
-namespace BooksProject.Dtos;
-
-public sealed record BookDto(
+public sealed record BookListDto(
     int Id,
     string Title,
-    string? Description,
+    string Author,
+    string Genre,
     decimal Price,
-    DateOnly PublishedDate,
-    string Genre);
+    string? CoverImageUrl,
+    bool InStock
+);

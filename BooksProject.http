@@ -5,8 +5,8 @@ POST http://localhost:5097/auth/signup
 Content-Type: application/json
 
 {
-    "email": "nima@example.com",
-    "password": "SuperSecret123"
+    "email": "nima@Sadeghi.com",
+    "password": "Nima@1382"
 }
 
 ### Log in
@@ -14,13 +14,22 @@ POST http://localhost:5097/auth/login
 Content-Type: application/json
 
 {
-    "email": "nima@example.com",
-    "password": "SuperSecret123"
+    "email": "nima@Sadeghi.com",
+    "password": "Nima@1382"
 }
 
 ### Who am I (requires a token)
 GET http://localhost:5097/auth/me
-Authorization: Bearer {{token}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJuaW1hQHNhZGVnaGkuY29tIiwicm9sZSI6IlVzZXIiLCJqdGkiOiJkMjE1YjBhMy0zZmZhLTQ3YWItODAxMi0wYzI2MzIzYTM4MmUiLCJuYmYiOjE3ODU4NDg0MjUsImV4cCI6MTc4NTg1MjAyNSwiaXNzIjoiQm9va3NQcm9qZWN0IiwiYXVkIjoiQm9va3NQcm9qZWN0Q2xpZW50In0.MN5BuNUVSssJl0CKa23dL6YtST9Ivs-Bn4YvQC3qc5U
+###
+POST  http://localhost:5097/auth/refresh
+Content-Type: application/json
+
+{
+ "RefreshToken" : "u7qntUkk2PsTrnT4EKLtHct9MLCkR9CLzjYGSucaW2SSrA6i4bjO8qJAWLQVwRGBvUTK/KkiBVdwx9td7v7GUw=="
+}
+
+
 
 ###
 GET http://localhost:5097/books

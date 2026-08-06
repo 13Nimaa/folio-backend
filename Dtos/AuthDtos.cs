@@ -3,8 +3,10 @@ using System.ComponentModel.DataAnnotations;
 namespace BooksProject.Dtos;
 
 public sealed record SignupDto(
-    [Required, EmailAddress, StringLength(256)] string Email,
-    [Required, StringLength(100, MinimumLength = 8)] string Password);
+    string name,
+     string Email,
+   string Password,
+   string confirmPassword);
 
 public sealed record LoginDto(
     [Required, EmailAddress] string Email,
@@ -15,4 +17,5 @@ public sealed record AuthResponseDto(
     string Email,
     string Role,
     string AccessToken,
+    string RefreshToken,
     DateTimeOffset ExpiresAt);
