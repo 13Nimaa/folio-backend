@@ -13,7 +13,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins("http://localhost:3000")
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 // Add services to the container.
@@ -40,8 +41,8 @@ app.UseExceptionHandler();
 //     app.MapOpenApi();
 // }
 
-app.UseHttpsRedirection();
 app.UseCors("frontend");
+app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BooksProject.Handlers;
@@ -16,15 +17,30 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
             httpContext.Request.Method,
             httpContext.Request.Path);
 
-        // The exception message is deliberately not returned to the client.
-        ProblemDetails problemDetails = new()
+        var (status, title) = exception switch
         {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "An unexpected error occurred.",
-            Instance = httpContext.Request.Path
+            BadHttpRequestException => (
+                StatusCodes.Status400BadRequest,
+                "The request could not be processed."),
+            DbUpdateException => (
+                StatusCodes.Status409Conflict,
+                "The database rejected the requested change."),
+            _ => (
+                StatusCodes.Status500InternalServerError,
+                "An unexpected error occurred.")
         };
 
-        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        ProblemDetails problemDetails = new()
+        {
+            Status = status,
+            Title = title,
+            Detail = exception.GetBaseException().Message,
+            Instance = httpContext.Request.Path
+        };
+        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+        httpContext.Response.StatusCode = status;
+        httpContext.Response.ContentType = "application/problem+json";
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
         // Handled: no other exception handler runs.

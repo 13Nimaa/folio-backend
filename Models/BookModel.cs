@@ -10,6 +10,8 @@ public class Book
 
     public decimal Price { get; set; }
 
+    public decimal Rating { get; set; }
+
     public DateOnly PublishedDate { get; set; }
 
     // Book Information

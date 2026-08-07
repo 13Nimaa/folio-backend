@@ -5,8 +5,10 @@ POST http://localhost:5097/auth/signup
 Content-Type: application/json
 
 {
-    "email": "nima@Sadeghi.com",
-    "password": "Nima@1382"
+    "name": "Nima Sadeghi",
+    "email": "sadeghinima090@gmail.com",
+    "password": "Nima@1382",
+    "confirmPassword": "Nima@1382"
 }
 
 ### Log in
@@ -20,7 +22,7 @@ Content-Type: application/json
 
 ### Who am I (requires a token)
 GET http://localhost:5097/auth/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJuaW1hQHNhZGVnaGkuY29tIiwicm9sZSI6IlVzZXIiLCJqdGkiOiJkMjE1YjBhMy0zZmZhLTQ3YWItODAxMi0wYzI2MzIzYTM4MmUiLCJuYmYiOjE3ODU4NDg0MjUsImV4cCI6MTc4NTg1MjAyNSwiaXNzIjoiQm9va3NQcm9qZWN0IiwiYXVkIjoiQm9va3NQcm9qZWN0Q2xpZW50In0.MN5BuNUVSssJl0CKa23dL6YtST9Ivs-Bn4YvQC3qc5U
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJzYWRlZ2hpbmltYTA5MEBnbWFpbC5jb20iLCJyb2xlIjoiVXNlciIsImp0aSI6Ijc4ZDg3ZDIyLTEwZWItNDJiOC05NmI5LTBlYTQwMDY4NzVlMiIsIm5iZiI6MTc4NjA1Mzg3MiwiZXhwIjoxNzg2MDU3NDcyLCJpc3MiOiJCb29rc1Byb2plY3QiLCJhdWQiOiJCb29rc1Byb2plY3RDbGllbnQifQ.7GR_hc6tDVJu03k-D0s1HK969vjogkPrJKyIojBBX5
 ###
 POST  http://localhost:5097/auth/refresh
 Content-Type: application/json

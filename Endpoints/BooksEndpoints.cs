@@ -19,20 +19,34 @@ public static class BooksEndpoints
             DateOnly? publishedAfter,
             DateOnly? publishedBefore,
             AppDbContext dbContext,
+            string sortBy = "newest",
             int page = 1,
             int pageSize = 10) =>
         {
             if (page < 1)
             {
-                return Results.BadRequest(new { Message = "Page must be at least 1." });
+                return Results.Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "Invalid pagination parameters.",
+                    detail: "Page must be at least 1.");
             }
 
             if (pageSize is < 1 or > 100)
             {
-                return Results.BadRequest(new
-                {
-                    Message = "Page size must be between 1 and 100."
-                });
+                return Results.Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "Invalid pagination parameters.",
+                    detail: "Page size must be between 1 and 100.");
+            }
+
+            sortBy = sortBy.Trim().ToLowerInvariant();
+
+            if (sortBy is not ("newest" or "rating" or "price" or "title"))
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "Invalid sort option.",
+                    detail: "Sort by must be one of: newest, rating, price, title.");
             }
 
             var query = dbContext.Books.AsNoTracking();
@@ -73,11 +87,26 @@ public static class BooksEndpoints
                     book.PublishedDate <= publishedBefore.Value);
             }
 
+            query = sortBy switch
+            {
+                "rating" => query
+                    .OrderByDescending(book => (double)book.Rating)
+                    .ThenBy(book => book.Id),
+                "price" => query
+                    .OrderBy(book => (double)book.Price)
+                    .ThenBy(book => book.Id),
+                "title" => query
+                    .OrderBy(book => book.Title)
+                    .ThenBy(book => book.Id),
+                _ => query
+                    .OrderByDescending(book => book.PublishedDate)
+                    .ThenBy(book => book.Id)
+            };
+
             var totalCount = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
             var books = await query
-                .OrderBy(book => book.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(book => new BookListDto(
@@ -125,7 +154,10 @@ public static class BooksEndpoints
                 .FirstOrDefaultAsync();
 
             return book is null
-                ? Results.NotFound()
+                ? Results.Problem(
+                    statusCode: StatusCodes.Status404NotFound,
+                    title: "Book not found.",
+                    detail: $"No book with ID {id} exists.")
                 : Results.Ok(book);
         })
         .WithName(GetBookEndpointName);
@@ -189,7 +221,10 @@ public static class BooksEndpoints
             var existingBook = await dbContext.Books.FindAsync(id);
             if (existingBook is null)
             {
-                return Results.NotFound();
+                return Results.Problem(
+                    statusCode: StatusCodes.Status404NotFound,
+                    title: "Book update failed.",
+                    detail: $"No book with ID {id} exists.");
             }
             existingBook.Title = updateBook.Title;
             existingBook.Description = updateBook.Description;
@@ -207,11 +242,18 @@ public static class BooksEndpoints
 
 
         });
-        group.MapDelete("/{id}", (int id, AppDbContext dbContext) =>
+        group.MapDelete("/{id}", async (int id, AppDbContext dbContext) =>
         {
-            dbContext.Books.Where(book => book.Id == id).ExecuteDeleteAsync();
-            return Results.Ok();
+            var deletedCount = await dbContext.Books
+                .Where(book => book.Id == id)
+                .ExecuteDeleteAsync();
 
+            return deletedCount == 0
+                ? Results.Problem(
+                    statusCode: StatusCodes.Status404NotFound,
+                    title: "Book deletion failed.",
+                    detail: $"No book with ID {id} exists.")
+                : Results.NoContent();
         });
 
 

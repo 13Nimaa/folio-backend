@@ -12,10 +12,14 @@ public sealed record LoginDto(
     [Required, EmailAddress] string Email,
     [Required] string Password);
 
-public sealed record AuthResponseDto(
+public sealed record UserDto(
     int UserId,
+    string Name,
     string Email,
-    string Role,
+    string Role);
+
+public sealed record AuthResponseDto(
+    UserDto User,
     string AccessToken,
     string RefreshToken,
     DateTimeOffset ExpiresAt);

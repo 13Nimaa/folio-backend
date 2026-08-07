@@ -34,10 +34,10 @@ public static class AuthEndpoints
 
             if (emailTaken)
             {
-                return Results.Conflict(new
-                {
-                    Message = "An account with that email already exists."
-                });
+                return Results.Problem(
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Signup failed.",
+                    detail: "An account with that email already exists.");
             }
 
             User user = new()
@@ -66,7 +66,12 @@ public static class AuthEndpoints
             await dbContext.SaveChangesAsync();
             return Results.Created(
                 "/auth/me",
-                new AuthResponseDto(user.Id, user.Email, user.Role, token, refreshToken, expiresAt));
+                new AuthResponseDto(new UserDto(
+        user.Id,
+        user.Name,
+        user.Email,
+        user.Role
+    ), token, refreshToken, expiresAt));
         });
 
         group.MapPost("/login", async (
@@ -83,9 +88,10 @@ public static class AuthEndpoints
             // does not reveal which accounts exist.
             if (user is null || !PasswordHasher.Verify(login.Password, user.PasswordHash))
             {
-                return Results.Json(
-                    new { Message = "Invalid email or password." },
-                    statusCode: StatusCodes.Status401Unauthorized);
+                return Results.Problem(
+                    statusCode: StatusCodes.Status401Unauthorized,
+                    title: "Login failed.",
+                    detail: "Invalid email or password.");
             }
             var refreshToken = tokenService.CreateRefreshToken();
 
@@ -102,7 +108,12 @@ public static class AuthEndpoints
             await dbContext.SaveChangesAsync();
 
             return Results.Ok(
-                new AuthResponseDto(user.Id, user.Email, user.Role, token, refreshToken, expiresAt));
+                new AuthResponseDto(new UserDto(
+        user.Id,
+        user.Name,
+        user.Email,
+        user.Role
+    ), token, refreshToken, expiresAt));
         });
         group.MapPost("/logout", async (
     LogoutRequestDto request,
@@ -132,7 +143,10 @@ public static class AuthEndpoints
     .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken);
     if (refreshToken is null || !refreshToken.IsActive)
     {
-        return Results.Unauthorized();
+        return Results.Problem(
+            statusCode: StatusCodes.Status401Unauthorized,
+            title: "Token refresh failed.",
+            detail: "The refresh token is invalid, expired, or revoked.");
     }
     var (accessToken, expiresAt) =
         tokenService.CreateAccessToken(refreshToken.User);
@@ -150,9 +164,13 @@ public static class AuthEndpoints
     dbContext.RefreshTokens.Add(newRefreshTokenEntity);
     await dbContext.SaveChangesAsync();
     return Results.Ok(new AuthResponseDto(
+           new UserDto(
         refreshToken.User.Id,
+        refreshToken.User.Name,
         refreshToken.User.Email,
-        refreshToken.User.Role,
+        refreshToken.User.Role
+    ),
+     
         accessToken,
         newRefreshToken,
         expiresAt

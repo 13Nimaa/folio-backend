@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -43,6 +44,43 @@ public static class AuthenticationExtensions
                     ClockSkew = TimeSpan.FromSeconds(30),
                     NameClaimType = TokenService.EmailClaim,
                     RoleClaimType = TokenService.RoleClaim
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = async context =>
+                    {
+                        context.HandleResponse();
+
+                        var problem = new ProblemDetails
+                        {
+                            Status = StatusCodes.Status401Unauthorized,
+                            Title = "Authentication failed.",
+                            Detail = context.AuthenticateFailure?.Message
+                                ?? "A valid access token is required.",
+                            Instance = context.Request.Path
+                        };
+                        problem.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/problem+json";
+                        await context.Response.WriteAsJsonAsync(problem);
+                    },
+                    OnForbidden = async context =>
+                    {
+                        var problem = new ProblemDetails
+                        {
+                            Status = StatusCodes.Status403Forbidden,
+                            Title = "Authorization failed.",
+                            Detail = "The authenticated user does not have permission to access this resource.",
+                            Instance = context.Request.Path
+                        };
+                        problem.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/problem+json";
+                        await context.Response.WriteAsJsonAsync(problem);
+                    }
                 };
             });
 
