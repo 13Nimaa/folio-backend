@@ -24,13 +24,13 @@ public class Book
     // Inventory
     public int StockQuantity { get; set; }
 
-    // Cover Image
-    public string? CoverImageUrl { get; set; }
+    // Cover Image (base64)
+    public string? CoverImage { get; set; }
+
+    // Author (plain string — no FK)
+    public required string Author { get; set; }
 
     // Relationships
     public int GenreId { get; set; }
     public Genre Genre { get; set; } = null!;
-
-    public int AuthorId { get; set; }
-    public Author Author { get; set; } = null!;
 }

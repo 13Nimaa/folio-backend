@@ -26,11 +26,11 @@ public sealed record CreateBookDto(
     [Range(0, int.MaxValue)]
     int StockQuantity,
 
-    string? CoverImageUrl,
+    string? CoverImage,
 
     [Range(1, int.MaxValue)]
     int GenreId,
 
-    [Range(1, int.MaxValue)]
-    int AuthorId
+    [Required, StringLength(200)]
+    string Author
 );

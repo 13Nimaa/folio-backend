@@ -22,12 +22,6 @@ public class AppDbContext : DbContext
             .HasForeignKey(book => book.GenreId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        modelBuilder.Entity<Book>()
-            .HasOne(book => book.Author)
-            .WithMany(author => author.Books)
-            .HasForeignKey(book => book.AuthorId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         modelBuilder.Entity<User>()
             .HasIndex(user => user.Email)
             .IsUnique();

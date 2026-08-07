@@ -110,13 +110,13 @@ public static class BooksEndpoints
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(book => new BookListDto(
-                       book.Id,
-        book.Title,
-        book.Author.Name,
-        book.Genre.Name,
-        book.Price,
-        book.CoverImageUrl,
-        book.StockQuantity > 0
+                    book.Id,
+                    book.Title,
+                    book.Author,
+                    book.Genre.Name,
+                    book.Price,
+                    book.CoverImage,
+                    book.StockQuantity > 0
                 ))
                 .ToListAsync();
 
@@ -143,8 +143,8 @@ public static class BooksEndpoints
                     book.Price,
                     book.PublishedDate,
                     book.Genre.Name,
-                    book.Author.Name,
-                    book.CoverImageUrl,
+                    book.Author,
+                    book.CoverImage,
                     book.ISBN,
                     book.Language,
                     book.Pages,
@@ -177,10 +177,10 @@ public static class BooksEndpoints
              Language = newBook.Language,
              Pages = newBook.Pages,
              StockQuantity = newBook.StockQuantity,
-             CoverImageUrl = newBook.CoverImageUrl,
+             CoverImage = newBook.CoverImage,
 
              GenreId = newBook.GenreId,
-             AuthorId = newBook.AuthorId
+             Author = newBook.Author
          };
 
          dbContext.Books.Add(book);
@@ -198,8 +198,8 @@ public static class BooksEndpoints
                  b.Price,
                  b.PublishedDate,
                  b.Genre.Name,
-                 b.Author.Name,
-                 b.CoverImageUrl,
+                 b.Author,
+                 b.CoverImage,
                  b.ISBN,
                  b.Language,
                  b.Pages,

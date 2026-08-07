@@ -6,7 +6,7 @@ public sealed record BookDetailsDto(
     DateOnly PublishedDate,
     string Genre,
     string Author,
-    string? CoverImageUrl,
+    string? CoverImage,
     string? ISBN,
     string? Language,
     int Pages,
