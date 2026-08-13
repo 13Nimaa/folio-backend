@@ -13,6 +13,8 @@ public class AppDbContext : DbContext
     public DbSet<Author> Authors { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<WishlistItem> WishlistItems { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,5 +27,16 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(user => user.Email)
             .IsUnique();
+        modelBuilder.Entity<WishlistItem>()
+.HasKey(w => new { w.UserId, w.BookId });
+        modelBuilder.Entity<WishlistItem>()
+            .HasOne(w => w.User)
+            .WithMany()
+            .HasForeignKey(w => w.UserId);
+
+        modelBuilder.Entity<WishlistItem>()
+            .HasOne(w => w.Book)
+            .WithMany()
+            .HasForeignKey(w => w.BookId);
     }
 }

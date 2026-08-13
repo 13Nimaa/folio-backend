@@ -5,6 +5,7 @@ using BooksProject.Dtos;
 using BooksProject.Models;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using BooksProject.Services;
 
 namespace BooksProject.Endpoints;
 
@@ -70,6 +71,7 @@ public static class AuthEndpoints
         user.Id,
         user.Name,
         user.Email,
+        user.ProfileImage,
         user.Role
     ), token, refreshToken, expiresAt));
         });
@@ -112,6 +114,8 @@ public static class AuthEndpoints
         user.Id,
         user.Name,
         user.Email,
+                user.ProfileImage,
+
         user.Role
     ), token, refreshToken, expiresAt));
         });
@@ -168,9 +172,10 @@ public static class AuthEndpoints
         refreshToken.User.Id,
         refreshToken.User.Name,
         refreshToken.User.Email,
+        refreshToken.User.ProfileImage,
         refreshToken.User.Role
     ),
-     
+
         accessToken,
         newRefreshToken,
         expiresAt
@@ -178,12 +183,78 @@ public static class AuthEndpoints
 
 });
 
-        group.MapGet("/me", (ClaimsPrincipal principal) => Results.Ok(new
+        group.MapPut("/me", async (
+            UpdateProfileDto update,
+            ClaimsPrincipal principal,
+            AppDbContext dbContext,
+            IImageService imageService) =>
         {
-            UserId = principal.FindFirstValue(TokenService.SubClaim),
-            Email = principal.FindFirstValue(TokenService.EmailClaim),
-            Role = principal.FindFirstValue(TokenService.RoleClaim)
-        })).RequireAuthorization(policy =>
-    policy.RequireRole(UserRoles.Admin));
+            var userIdClaim = principal.FindFirstValue(TokenService.SubClaim);
+
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var user = await dbContext.Users.FindAsync(userId);
+
+            if (user is null)
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status404NotFound,
+                    title: "Profile update failed.",
+                    detail: "User not found.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(update.Name))
+            {
+                user.Name = update.Name.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(update.ProfileImage))
+            {
+                user.ProfileImage = await imageService.UploadBase64ImageAsync(
+                    update.ProfileImage);
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            return Results.Ok(new UserDto(
+                user.Id,
+                user.Name,
+                user.Email,
+                user.ProfileImage,
+                user.Role));
+        }).RequireAuthorization();
+
+        group.MapGet("/me", async (
+            ClaimsPrincipal principal,
+            AppDbContext dbContext) =>
+        {
+            var userIdClaim = principal.FindFirstValue(TokenService.SubClaim);
+
+            if (!int.TryParse(userIdClaim, out int userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var user = await dbContext.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => new UserDto(
+                    u.Id,
+                    u.Name,
+                    u.Email,
+                    u.ProfileImage,
+                    u.Role))
+                .FirstOrDefaultAsync();
+
+            return user is null
+                ? Results.Problem(
+                    statusCode: StatusCodes.Status404NotFound,
+                    title: "Profile not found.",
+                    detail: "User not found.")
+                : Results.Ok(user);
+        }).RequireAuthorization();
     }
 }

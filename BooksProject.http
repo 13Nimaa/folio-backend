@@ -16,7 +16,7 @@ POST http://localhost:5097/auth/login
 Content-Type: application/json
 
 {
-    "email": "nima@Sadeghi.com",
+    "email": "sadeghinima090@gmail.com",
     "password": "Nima@1382"
 }
 
@@ -72,3 +72,7 @@ Content-Type:  application/json
     "Description": "Nima test 3",
     "PublishedDate": "2010-10-10"
 }
+###
+Post  http://localhost:5097/wishlist/6
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJzYWRlZ2hpbmltYTA5MEBnbWFpbC5jb20iLCJyb2xlIjoiQWRtaW4iLCJqdGkiOiJlMmFiMTRjYS01NGI5LTRjYjgtYjRhNC03YTFjNDIzMjQ4MDQiLCJuYmYiOjE3ODY0NjExMzAsImV4cCI6MTc4NjQ2NDczMCwiaXNzIjoiQm9va3NQcm9qZWN0IiwiYXVkIjoiQm9va3NQcm9qZWN0Q2xpZW50In0.u2x0rHAmH0HyUSK_8IvHSvkPMcMzp2uLKCSoZj79eJI
+

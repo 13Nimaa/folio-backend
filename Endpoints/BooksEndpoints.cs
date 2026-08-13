@@ -1,6 +1,7 @@
 using BooksProject.Data;
 using BooksProject.Dtos;
 using BooksProject.Models;
+using BooksProject.Services;
 using Microsoft.EntityFrameworkCore;
 namespace BooksProject.Endpoints;
 
@@ -87,7 +88,7 @@ public static class BooksEndpoints
                     book.PublishedDate <= publishedBefore.Value);
             }
 
-            query = sortBy switch
+            query = sortBy switch 
             {
                 "rating" => query
                     .OrderByDescending(book => (double)book.Rating)
@@ -115,8 +116,8 @@ public static class BooksEndpoints
                     book.Author,
                     book.Genre.Name,
                     book.Price,
-                    book.CoverImage,
-                    book.StockQuantity > 0
+                    book.CoverImage
+            
                 ))
                 .ToListAsync();
 
@@ -145,11 +146,10 @@ public static class BooksEndpoints
                     book.Genre.Name,
                     book.Author,
                     book.CoverImage,
-                    book.ISBN,
-                    book.Language,
-                    book.Pages,
-                    book.StockQuantity > 0,
-                    book.StockQuantity
+                
+                    book.Language
+                 
+             
                 ))
                 .FirstOrDefaultAsync();
 
@@ -164,8 +164,17 @@ public static class BooksEndpoints
 
         group.MapPost("/", async (
          CreateBookDto newBook,
-         AppDbContext dbContext) =>
+         AppDbContext dbContext, IImageService imageService) =>
+
      {
+            string? coverImageUrl = null;
+
+         if (!string.IsNullOrWhiteSpace(newBook.CoverImage))
+         {
+             coverImageUrl =
+                 await imageService.UploadBase64ImageAsync(
+                     newBook.CoverImage);
+         }
          Book book = new()
          {
              Title = newBook.Title,
@@ -173,11 +182,10 @@ public static class BooksEndpoints
              Price = newBook.Price,
              PublishedDate = newBook.PublishedDate,
 
-             ISBN = newBook.ISBN,
+        
              Language = newBook.Language,
-             Pages = newBook.Pages,
-             StockQuantity = newBook.StockQuantity,
-             CoverImage = newBook.CoverImage,
+          
+             CoverImage = coverImageUrl,
 
              GenreId = newBook.GenreId,
              Author = newBook.Author
@@ -200,11 +208,9 @@ public static class BooksEndpoints
                  b.Genre.Name,
                  b.Author,
                  b.CoverImage,
-                 b.ISBN,
-                 b.Language,
-                 b.Pages,
-                 b.StockQuantity > 0,
-                 b.StockQuantity
+             
+                 b.Language
+            
              ))
              .FirstAsync();
 

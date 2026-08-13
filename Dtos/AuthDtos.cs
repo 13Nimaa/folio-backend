@@ -16,6 +16,7 @@ public sealed record UserDto(
     int UserId,
     string Name,
     string Email,
+   string ProfileImage,
     string Role);
 
 public sealed record AuthResponseDto(
@@ -23,3 +24,7 @@ public sealed record AuthResponseDto(
     string AccessToken,
     string RefreshToken,
     DateTimeOffset ExpiresAt);
+
+public sealed record UpdateProfileDto(
+    string? Name,
+    string? ProfileImage);

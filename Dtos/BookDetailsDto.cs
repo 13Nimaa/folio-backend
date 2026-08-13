@@ -7,9 +7,7 @@ public sealed record BookDetailsDto(
     string Genre,
     string Author,
     string? CoverImage,
-    string? ISBN,
-    string? Language,
-    int Pages,
-    bool InStock,
-    int StockQuantity
+  
+    string? Language
+  
 );

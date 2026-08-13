@@ -4,7 +4,8 @@ using BooksProject.Endpoints;
 using BooksProject.Handlers;
 using FluentValidation;
 using GameStore.Api.Endpoints;
-
+using BooksProject.Configuration;
+using BooksProject.Services;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
 {
@@ -20,7 +21,10 @@ builder.Services.AddCors(options =>
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 // builder.Services.AddOpenApi();
+builder.Services.Configure<CloudinarySettings>(
+    builder.Configuration.GetSection("CloudinarySettings"));
 
+builder.Services.AddScoped<IImageService, CloudinaryImageService>();
 builder.AddAppStoreDb();
 builder.AddJwtAuthentication();
 builder.Services.AddValidation();
@@ -50,6 +54,7 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapBookEndpoints();
 app.MapGenresEndpoint();
+app.MapWishlistEndpoints();
 
 
 app.Run();

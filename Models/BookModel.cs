@@ -15,18 +15,15 @@ public class Book
     public DateOnly PublishedDate { get; set; }
 
     // Book Information
-    public required string ISBN { get; set; }
 
     public required string Language { get; set; }
 
-    public int Pages { get; set; }
+
 
     // Inventory
-    public int StockQuantity { get; set; }
 
     // Cover Image (base64)
-    public string? CoverImage { get; set; }
-
+public string? CoverImage { get; set; }
     // Author (plain string — no FK)
     public required string Author { get; set; }
 

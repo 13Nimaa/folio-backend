@@ -4,6 +4,6 @@ public sealed record BookListDto(
     string Author,
     string Genre,
     decimal Price,
-    string? CoverImage,
-    bool InStock
+    string? CoverImage
+
 );

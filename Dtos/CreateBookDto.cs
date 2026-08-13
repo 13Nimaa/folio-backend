@@ -14,17 +14,14 @@ public sealed record CreateBookDto(
 
     DateOnly PublishedDate,
 
-    [Required, StringLength(20)]
-    string ISBN,
+
 
     [Required, StringLength(50)]
     string Language,
 
-    [Range(1, int.MaxValue)]
-    int Pages,
+ 
 
-    [Range(0, int.MaxValue)]
-    int StockQuantity,
+
 
     string? CoverImage,
 
