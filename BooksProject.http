@@ -52,15 +52,21 @@ GET http://localhost:5097/books/2
 ###
 
 Post http://localhost:5097/books
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJzYWRlZ2hpbmltYTA5MEBnbWFpbC5jb20iLCJyb2xlIjoiVXNlciIsImp0aSI6IjA0NTQ5M2ExLWUwNjAtNDI2MS1iZmVhLWM0YjE4Y2ZmYjVjNSIsIm5iZiI6MTc4NjY1MzgyOCwiZXhwIjoxNzg2NjU3NDI4LCJpc3MiOiJCb29rc1Byb2plY3QiLCJhdWQiOiJCb29rc1Byb2plY3RDbGllbnQifQ.TfwOe-i7jK-NJVaDxAAKKWyKx2dkKcyuaOCnPh8tgoE
 Content-Type:  application/json
 
 {
     "Title": "Test 2",
-    "GenreId" : 14,
+    "GenreId" : 3,
     "Price" : 40.99,
     "Description": "Nima test 2",
+    "Language" : "persian",
+    "Author" : "nima Sadeghi",
     "PublishedDate": "2010-10-10"
 }
+###
+GET  http://localhost:5097/user/books
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJzYWRlZ2hpbmltYTA5MEBnbWFpbC5jb20iLCJyb2xlIjoiVXNlciIsImp0aSI6IjA0NTQ5M2ExLWUwNjAtNDI2MS1iZmVhLWM0YjE4Y2ZmYjVjNSIsIm5iZiI6MTc4NjY1MzgyOCwiZXhwIjoxNzg2NjU3NDI4LCJpc3MiOiJCb29rc1Byb2plY3QiLCJhdWQiOiJCb29rc1Byb2plY3RDbGllbnQifQ.TfwOe-i7jK-NJVaDxAAKKWyKx2dkKcyuaOCnPh8tgoE
 ###
 PUT  http://localhost:5097/books/2
 Content-Type:  application/json

@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using BooksProject.Authentication;
 using BooksProject.Data;
 using BooksProject.Dtos;
 using BooksProject.Models;
@@ -88,7 +90,7 @@ public static class BooksEndpoints
                     book.PublishedDate <= publishedBefore.Value);
             }
 
-            query = sortBy switch 
+            query = sortBy switch
             {
                 "rating" => query
                     .OrderByDescending(book => (double)book.Rating)
@@ -117,7 +119,7 @@ public static class BooksEndpoints
                     book.Genre.Name,
                     book.Price,
                     book.CoverImage
-            
+
                 ))
                 .ToListAsync();
 
@@ -132,6 +134,7 @@ public static class BooksEndpoints
 
             return Results.Ok(response);
         });
+
         group.MapGet("/{id}", async (int id, AppDbContext dbContext) =>
         {
             var book = await dbContext.Books
@@ -146,10 +149,10 @@ public static class BooksEndpoints
                     book.Genre.Name,
                     book.Author,
                     book.CoverImage,
-                
+
                     book.Language
-                 
-             
+
+
                 ))
                 .FirstOrDefaultAsync();
 
@@ -164,10 +167,18 @@ public static class BooksEndpoints
 
         group.MapPost("/", async (
          CreateBookDto newBook,
+         ClaimsPrincipal user,
          AppDbContext dbContext, IImageService imageService) =>
 
      {
-            string? coverImageUrl = null;
+         var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
+
+         if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
+         {
+             return Results.Unauthorized();
+         }
+
+         string? coverImageUrl = null;
 
          if (!string.IsNullOrWhiteSpace(newBook.CoverImage))
          {
@@ -182,13 +193,15 @@ public static class BooksEndpoints
              Price = newBook.Price,
              PublishedDate = newBook.PublishedDate,
 
-        
+
              Language = newBook.Language,
-          
+
              CoverImage = coverImageUrl,
 
              GenreId = newBook.GenreId,
-             Author = newBook.Author
+             Author = newBook.Author,
+             CreatedByUserId = userId
+
          };
 
          dbContext.Books.Add(book);
@@ -208,9 +221,9 @@ public static class BooksEndpoints
                  b.Genre.Name,
                  b.Author,
                  b.CoverImage,
-             
+
                  b.Language
-            
+
              ))
              .FirstAsync();
 
@@ -221,16 +234,27 @@ public static class BooksEndpoints
              createdBook
          );
      });
-        group.MapPut("/{id}", async (int id, UpdateBookDto updateBook, AppDbContext dbContext) =>
+        group.MapPut("/{id}", async (int id, UpdateBookDto updateBook, AppDbContext dbContext, ClaimsPrincipal user) =>
 
         {
+            var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
+
+            if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
             var existingBook = await dbContext.Books.FindAsync(id);
+          
             if (existingBook is null)
             {
                 return Results.Problem(
                     statusCode: StatusCodes.Status404NotFound,
                     title: "Book update failed.",
                     detail: $"No book with ID {id} exists.");
+            }
+              if(existingBook.CreatedByUserId != userId)
+            {
+                return Results.Forbid();
             }
             existingBook.Title = updateBook.Title;
             existingBook.Description = updateBook.Description;

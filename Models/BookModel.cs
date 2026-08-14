@@ -17,13 +17,15 @@ public class Book
     // Book Information
 
     public required string Language { get; set; }
+    public int CreatedByUserId { get; set; }
+    public User CreatedByUser { get; set; } = null!;
 
 
 
     // Inventory
 
     // Cover Image (base64)
-public string? CoverImage { get; set; }
+    public string? CoverImage { get; set; }
     // Author (plain string — no FK)
     public required string Author { get; set; }
 

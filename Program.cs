@@ -55,6 +55,7 @@ app.MapAuthEndpoints();
 app.MapBookEndpoints();
 app.MapGenresEndpoint();
 app.MapWishlistEndpoints();
+app.MapUserEndpoints();
 
 
 app.Run();
