@@ -32,4 +32,5 @@ public class Book
     // Relationships
     public int GenreId { get; set; }
     public Genre Genre { get; set; } = null!;
+    public int StockQuantity { get; set; }
 }

@@ -14,7 +14,8 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<WishlistItem> WishlistItems { get; set; }
-
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,5 +43,17 @@ public class AppDbContext : DbContext
             .HasOne(w => w.Book)
             .WithMany()
             .HasForeignKey(w => w.BookId);
+        modelBuilder.Entity<OrderItem>()
+.HasKey(x => new { x.OrderId, x.BookId });
+
+        modelBuilder.Entity<Order>()
+            .HasMany(x => x.Items)
+            .WithOne(x => x.Order)
+            .HasForeignKey(x => x.OrderId);
+
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(x => x.Book)
+            .WithMany()
+            .HasForeignKey(x => x.BookId);
     }
 }
