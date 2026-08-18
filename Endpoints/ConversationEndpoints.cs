@@ -2,6 +2,8 @@ using System.Security.Claims;
 using BooksProject.Authentication;
 using BooksProject.Data;
 using BooksProject.Dtos;
+using BooksProject.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 public static class ConversationEndpoints
@@ -178,7 +180,8 @@ async (
                 int conversationId,
                 CreateMessageDto request,
                 ClaimsPrincipal user,
-                AppDbContext dbContext) =>
+                AppDbContext dbContext,
+                   IHubContext<ChatHub> hubContext) =>
             {
                 var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
 
@@ -243,6 +246,10 @@ async (
                 conversation.LastMessageAt = message.SentAt;
 
                 await dbContext.SaveChangesAsync();
+                var receiverId =
+                    conversation.CustomerId == userId
+                        ? conversation.PublisherId
+                        : conversation.CustomerId;
 
                 var response = new MessageDto(
                     message.Id,
@@ -253,11 +260,62 @@ async (
                     message.SentAt,
                     message.IsRead
                 );
-
+                await hubContext.Clients
+                    .Group($"user-{receiverId}")
+                    .SendAsync(
+                        "ReceiveMessage",
+                        response);
                 return Results.Created(
                     $"/conversations/{conversationId}/messages/{message.Id}",
                     response
                 );
             });
+        group.MapPatch(
+"/{conversationId:int}/messages/read",
+async (
+    int conversationId,
+    ClaimsPrincipal user,
+    AppDbContext dbContext) =>
+{
+    var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
+
+    if (userIdClaim is null ||
+        !int.TryParse(userIdClaim, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var conversationExists = await dbContext.Conversations
+        .AsNoTracking()
+        .AnyAsync(c =>
+            c.Id == conversationId &&
+            (c.CustomerId == userId ||
+             c.PublisherId == userId));
+
+    if (!conversationExists)
+    {
+        return Results.Problem(
+            title: "Conversation not found",
+            detail: "The conversation does not exist or you do not have access to it.",
+            statusCode: StatusCodes.Status404NotFound
+        );
+    }
+
+    var unreadMessages = await dbContext.Messages
+        .Where(m =>
+            m.ConversationId == conversationId &&
+            m.SenderId != userId &&
+            !m.IsRead)
+        .ToListAsync();
+
+    foreach (var message in unreadMessages)
+    {
+        message.IsRead = true;
+    }
+
+    await dbContext.SaveChangesAsync();
+
+    return Results.NoContent();
+});
     }
 }

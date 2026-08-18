@@ -28,6 +28,7 @@ builder.Services.AddScoped<IImageService, CloudinaryImageService>();
 builder.AddAppStoreDb();
 builder.AddJwtAuthentication();
 builder.Services.AddValidation();
+builder.Services.AddSignalR();
 // Registers every AbstractValidator<T> in this assembly.
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
