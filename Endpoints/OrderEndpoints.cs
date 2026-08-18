@@ -7,7 +7,7 @@ public static class OrderEndpoints
 {
     public static void MapOrderEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/orders")
+        var group = app.MapGroup("/orders")
             .RequireAuthorization();
 
         group.MapPost("/", async (
@@ -31,8 +31,8 @@ public static class OrderEndpoints
                 return Results.BadRequest("Quantity must be greater than zero.");
             }
             if (dto.Items
-    .GroupBy(x => x.BookId)
-    .Any(g => g.Count() > 1))
+                 .GroupBy(x => x.BookId)
+                .Any(g => g.Count() > 1))
             {
                 return Results.BadRequest("An order cannot contain the same book multiple times.");
             }
@@ -45,47 +45,64 @@ public static class OrderEndpoints
             {
                 return Results.BadRequest("One or more books were not found.");
             }
-            decimal totalPrice = 0;
-            foreach (var item in dto.Items)
+            await using var transaction = await dbcontext.Database.BeginTransactionAsync();
+            try
             {
-                var book = books.First(x => x.Id == item.BookId);
-                totalPrice += book.Price * item.Quantity;
-
-            }
-            var order = new Order
-            {
-                UserId = userId,
-                Status = OrderStatus.Pending,
-                TotalPrice = totalPrice
-
-
-
-            };
-            foreach (var item in dto.Items)
-            {
-                var book = books.First(x => x.Id == item.BookId);
-                order.Items.Add(new OrderItem
+                decimal totalPrice = 0;
+                foreach (var item in dto.Items)
                 {
-                    BookId = book.Id,
-                    Quantity = item.Quantity,
-                    UnitPrice = book.Price
-                });
-            }
-            dbcontext.Orders.Add(order);
+                    var book = books.First(x => x.Id == item.BookId);
+                    if (book.StockQuantity < item.Quantity)
+                    {
+                        return Results.BadRequest(
+                            $"Not enough stock for book '{book.Title}'.");
+                    }
+                    book.StockQuantity -= item.Quantity;
+                    totalPrice += book.Price * item.Quantity;
 
-            await dbcontext.SaveChangesAsync();
-            return Results.Created(
-                $"/api/orders/{order.Id}",
-                new
+                }
+                var order = new Order
                 {
-                    order.Id,
-                    order.Status,
-                    order.TotalPrice,
-                    order.CreatedAt
-                });
+                    UserId = userId,
+                    Status = OrderStatus.Pending,
+                    TotalPrice = totalPrice
+
+
+
+                };
+                foreach (var item in dto.Items)
+                {
+                    var book = books.First(x => x.Id == item.BookId);
+                    order.Items.Add(new OrderItem
+                    {
+                        BookId = book.Id,
+                        Quantity = item.Quantity,
+                        UnitPrice = book.Price
+                    });
+                }
+
+                dbcontext.Orders.Add(order);
+
+                await dbcontext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Results.Created(
+                    $"/api/orders/{order.Id}",
+                    new
+                    {
+                        order.Id,
+                        order.Status,
+                        order.TotalPrice,
+                        order.CreatedAt
+                    });
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
 
         });
-        app.MapGet("/", async (ClaimsPrincipal user, AppDbContext dbContext) =>
+        group.MapGet("/", async (ClaimsPrincipal user, AppDbContext dbContext) =>
         {
             var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
             if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
@@ -106,9 +123,9 @@ public static class OrderEndpoints
             return Results.Ok(orders);
 
         });
-        app.MapGet("/{id:int}", async (
+        group.MapGet("/{id:int}", async (
             ClaimsPrincipal user,
-            int OrderId,
+            int id,
             AppDbContext dbContext
         ) =>
         {
@@ -120,7 +137,7 @@ public static class OrderEndpoints
             }
             var order = await dbContext.Orders
                 .AsNoTracking()
-                .Where(x => x.Id == OrderId && x.UserId == userId)
+                .Where(x => x.Id == id && x.UserId == userId)
                 .Select(x => new OrderDetailsDto(
                     x.Id,
                     x.Status,
@@ -142,42 +159,42 @@ public static class OrderEndpoints
 
             return Results.Ok(order);
         });
-group.MapPatch("/{id:int}/cancel", async (
-    int id,
-    ClaimsPrincipal user,
-    AppDbContext dbContext) =>
-{
-    var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
+        group.MapPatch("/{id:int}/cancel", async (
+            int id,
+            ClaimsPrincipal user,
+            AppDbContext dbContext) =>
+        {
+            var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
 
-    if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
-    {
-        return Results.Unauthorized();
-    }
+            if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
 
-    var order = await dbContext.Orders
-        .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            var order = await dbContext.Orders
+                .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
 
-    if (order is null)
-    {
-        return Results.NotFound();
-    }
+            if (order is null)
+            {
+                return Results.NotFound();
+            }
 
-    if (order.Status != OrderStatus.Pending)
-    {
-        return Results.BadRequest(
-            "Only pending orders can be cancelled.");
-    }
+            if (order.Status != OrderStatus.Pending)
+            {
+                return Results.BadRequest(
+                    "Only pending orders can be cancelled.");
+            }
 
-    order.Status = OrderStatus.Cancelled;
+            order.Status = OrderStatus.Cancelled;
 
-    await dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
 
-    return Results.Ok(new
-    {
-        order.Id,
-        order.Status
-    });
-});
+            return Results.Ok(new
+            {
+                order.Id,
+                order.Status
+            });
+        });
     }
 
 }

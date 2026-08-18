@@ -56,6 +56,7 @@ app.MapBookEndpoints();
 app.MapGenresEndpoint();
 app.MapWishlistEndpoints();
 app.MapUserEndpoints();
+app.MapOrderEndpoints();
 
 
 app.Run();

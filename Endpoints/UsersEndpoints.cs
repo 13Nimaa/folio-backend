@@ -28,7 +28,8 @@ public static class UsersEndpoints
                     book.Author,
                     book.Genre.Name,
                     book.Price,
-                    book.CoverImage
+                    book.CoverImage,
+                    book.StockQuantity
                 ))
                 .ToListAsync();
 

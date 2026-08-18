@@ -118,7 +118,8 @@ public static class BooksEndpoints
                     book.Author,
                     book.Genre.Name,
                     book.Price,
-                    book.CoverImage
+                    book.CoverImage,
+                    book.StockQuantity
 
                 ))
                 .ToListAsync();
@@ -150,7 +151,8 @@ public static class BooksEndpoints
                     book.Author,
                     book.CoverImage,
 
-                    book.Language
+                    book.Language,
+                    book.StockQuantity
 
 
                 ))
@@ -200,7 +202,8 @@ public static class BooksEndpoints
 
              GenreId = newBook.GenreId,
              Author = newBook.Author,
-             CreatedByUserId = userId
+             CreatedByUserId = userId,
+             StockQuantity = newBook.StockQuantity
 
          };
 
@@ -221,8 +224,9 @@ public static class BooksEndpoints
                  b.Genre.Name,
                  b.Author,
                  b.CoverImage,
-
-                 b.Language
+ 
+                 b.Language,
+                 b.StockQuantity
 
              ))
              .FirstAsync();
@@ -261,6 +265,7 @@ public static class BooksEndpoints
             existingBook.Price = updateBook.Price;
             existingBook.PublishedDate = updateBook.PublishedDate;
             existingBook.GenreId = updateBook.GenreId;
+            existingBook.StockQuantity = updateBook.StockQuantity;
             await dbContext.SaveChangesAsync();
 
             return Results.Ok();

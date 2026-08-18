@@ -29,5 +29,8 @@ public sealed record CreateBookDto(
     int GenreId,
 
     [Required, StringLength(200)]
-    string Author
+    string Author,
+
+    [Range(0, int.MaxValue)]
+    int StockQuantity
 );

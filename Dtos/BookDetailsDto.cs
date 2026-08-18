@@ -8,6 +8,6 @@ public sealed record BookDetailsDto(
     string Author,
     string? CoverImage,
   
-    string? Language
-  
+    string? Language,
+    int StockQuantity
 );
