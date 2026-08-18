@@ -15,117 +15,175 @@ public static class ConversationEndpoints
 
         // Get all conversations for the current user
         group.MapGet(
-            "/",
-            async (
-                ClaimsPrincipal user,
-                AppDbContext dbContext) =>
-            {
-                var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
+          "/",
+          async (
+              ClaimsPrincipal user,
+              AppDbContext dbContext) =>
+          {
+              var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
 
-                if (userIdClaim is null ||
-                    !int.TryParse(userIdClaim, out var userId))
-                {
-                    return Results.Unauthorized();
-                }
+              if (userIdClaim is null ||
+                  !int.TryParse(userIdClaim, out var userId))
+              {
+                  return Results.Unauthorized();
+              }
 
-                var conversations = await dbContext.Conversations
-                    .AsNoTracking()
-                    .Where(c =>
-                        c.CustomerId == userId ||
-                        c.PublisherId == userId)
-                    .OrderByDescending(c =>
-                        c.LastMessageAt ?? c.CreatedAt)
-                    .Select(c => new ConversationDto(
-                        c.Id,
-                        c.CustomerId,
-                        c.PublisherId,
-                        c.CreatedAt,
-                        c.LastMessageAt
-                    ))
-                    .ToListAsync();
+              var conversations = await dbContext.Conversations
+                  .AsNoTracking()
+                  .Where(c =>
+                      c.CustomerId == userId ||
+                      c.PublisherId == userId)
+                  .OrderByDescending(c =>
+                      c.LastMessageAt ?? c.CreatedAt)
+                  .Select(c => new ConversationDto(
+                      c.Id,
+                      c.CustomerId,
+                      c.PublisherId,
 
-                return Results.Ok(conversations);
-            });
+                      c.CustomerId == userId
+                          ? c.PublisherId
+                          : c.CustomerId,
 
+                      c.CustomerId == userId
+                          ? c.Publisher.Name
+                          : c.Customer.Name,
+
+                      c.CustomerId == userId
+                          ? c.Publisher.ProfileImage
+                          : c.Customer.ProfileImage,
+
+                      c.Messages
+                          .OrderByDescending(m => m.SentAt)
+                          .Select(m => m.Content)
+                          .FirstOrDefault(),
+
+                      c.CreatedAt,
+                      c.LastMessageAt,
+
+                      c.Messages.Count(m =>
+                          m.SenderId != userId &&
+                          !m.IsRead)
+                  ))
+                  .ToListAsync();
+
+              return Results.Ok(conversations);
+          });
         // Get or create a conversation for a book
-        group.MapPost(
-            "/books/{bookId:int}",
-            async (
-                int bookId,
-                ClaimsPrincipal user,
-                AppDbContext dbContext) =>
-            {
-                var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
+     group.MapPost(
+    "/books/{bookId:int}",
+    async (
+        int bookId,
+        ClaimsPrincipal user,
+        AppDbContext dbContext) =>
+    {
+        var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
 
-                if (userIdClaim is null ||
-                    !int.TryParse(userIdClaim, out var userId))
-                {
-                    return Results.Unauthorized();
-                }
+        if (userIdClaim is null ||
+            !int.TryParse(userIdClaim, out var userId))
+        {
+            return Results.Unauthorized();
+        }
 
-                var book = await dbContext.Books
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(b => b.Id == bookId);
+        var book = await dbContext.Books
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == bookId);
 
-                if (book is null)
-                {
-                    return Results.Problem(
-                        title: "Book not found",
-                        detail: $"No book was found with ID {bookId}.",
-                        statusCode: StatusCodes.Status404NotFound
-                    );
-                }
+        if (book is null)
+        {
+            return Results.Problem(
+                title: "Book not found",
+                detail: $"No book was found with ID {bookId}.",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
 
-                if (book.CreatedByUserId == userId)
-                {
-                    return Results.Problem(
-                        title: "Invalid conversation",
-                        detail: "You cannot start a conversation with yourself.",
-                        statusCode: StatusCodes.Status400BadRequest
-                    );
-                }
+        if (book.CreatedByUserId == userId)
+        {
+            return Results.Problem(
+                title: "Invalid conversation",
+                detail: "You cannot start a conversation with yourself.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
 
-                var conversation = await dbContext.Conversations
-                    .FirstOrDefaultAsync(c =>
-                        c.CustomerId == userId &&
-                        c.PublisherId == book.CreatedByUserId);
+        var conversation = await dbContext.Conversations
+            .Include(c => c.Publisher)
+            .Include(c => c.Messages)
+            .FirstOrDefaultAsync(c =>
+                c.CustomerId == userId &&
+                c.PublisherId == book.CreatedByUserId);
 
-                if (conversation is not null)
-                {
-                    var existingConversation = new ConversationDto(
-                        conversation.Id,
-                        conversation.CustomerId,
-                        conversation.PublisherId,
-                        conversation.CreatedAt,
-                        conversation.LastMessageAt
-                    );
+        if (conversation is not null)
+        {
+            var existingConversation = new ConversationDto(
+                conversation.Id,
+                conversation.CustomerId,
+                conversation.PublisherId,
 
-                    return Results.Ok(existingConversation);
-                }
+                conversation.PublisherId,
 
-                conversation = new Conversation
-                {
-                    CustomerId = userId,
-                    PublisherId = book.CreatedByUserId
-                };
+                conversation.Publisher.Name,
+                conversation.Publisher.ProfileImage,
 
-                dbContext.Conversations.Add(conversation);
+                conversation.Messages
+                    .OrderByDescending(m => m.SentAt)
+                    .Select(m => m.Content)
+                    .FirstOrDefault(),
 
-                await dbContext.SaveChangesAsync();
+                conversation.CreatedAt,
+                conversation.LastMessageAt,
 
-                var response = new ConversationDto(
-                    conversation.Id,
-                    conversation.CustomerId,
-                    conversation.PublisherId,
-                    conversation.CreatedAt,
-                    conversation.LastMessageAt
-                );
+                conversation.Messages.Count(m =>
+                    m.SenderId != userId &&
+                    !m.IsRead)
+            );
 
-                return Results.Created(
-                    $"/conversations/{conversation.Id}",
-                    response
-                );
-            });
+            return Results.Ok(existingConversation);
+        }
+
+        conversation = new Conversation
+        {
+            CustomerId = userId,
+            PublisherId = book.CreatedByUserId
+        };
+
+        dbContext.Conversations.Add(conversation);
+
+        await dbContext.SaveChangesAsync();
+
+        // Reload navigation properties and messages
+        conversation = await dbContext.Conversations
+            .AsNoTracking()
+            .Include(c => c.Publisher)
+            .Include(c => c.Messages)
+            .FirstAsync(c => c.Id == conversation.Id);
+
+        var response = new ConversationDto(
+            conversation.Id,
+            conversation.CustomerId,
+            conversation.PublisherId,
+
+            conversation.PublisherId,
+
+            conversation.Publisher.Name,
+            conversation.Publisher.ProfileImage,
+
+            conversation.Messages
+                .OrderByDescending(m => m.SentAt)
+                .Select(m => m.Content)
+                .FirstOrDefault(),
+
+            conversation.CreatedAt,
+            conversation.LastMessageAt,
+
+            0
+        );
+
+        return Results.Created(
+            $"/conversations/{conversation.Id}",
+            response
+        );
+    });
         group.MapGet(
 "/{conversationId:int}/messages",
 async (
@@ -200,6 +258,15 @@ async (
                     );
                 }
 
+                if (request.Content.Length > 4000)
+                {
+                    return Results.Problem(
+                        title: "Invalid message",
+                        detail: "Message content cannot exceed 4000 characters.",
+                        statusCode: StatusCodes.Status400BadRequest
+                    );
+                }
+
                 var conversation = await dbContext.Conversations
                     .FirstOrDefaultAsync(c =>
                         c.Id == conversationId &&
@@ -214,19 +281,20 @@ async (
                         statusCode: StatusCodes.Status404NotFound
                     );
                 }
-
                 if (request.BookId.HasValue)
                 {
-                    var bookExists = await dbContext.Books
+                    var bookBelongsToPublisher = await dbContext.Books
                         .AsNoTracking()
-                        .AnyAsync(b => b.Id == request.BookId.Value);
+                        .AnyAsync(b =>
+                            b.Id == request.BookId.Value &&
+                            b.CreatedByUserId == conversation.PublisherId);
 
-                    if (!bookExists)
+                    if (!bookBelongsToPublisher)
                     {
                         return Results.Problem(
-                            title: "Book not found",
-                            detail: $"No book was found with ID {request.BookId.Value}.",
-                            statusCode: StatusCodes.Status404NotFound
+                            title: "Invalid book",
+                            detail: "The selected book does not belong to the publisher of this conversation.",
+                            statusCode: StatusCodes.Status400BadRequest
                         );
                     }
                 }

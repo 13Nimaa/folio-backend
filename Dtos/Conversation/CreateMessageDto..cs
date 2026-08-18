@@ -1,6 +1,8 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace BooksProject.Dtos;
 
 public record CreateMessageDto(
-    string Content,
+  [Required] [MaxLength(4000)]  string Content,
     int? BookId
 );
