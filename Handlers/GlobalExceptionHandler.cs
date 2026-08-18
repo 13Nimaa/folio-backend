@@ -34,8 +34,12 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
         {
             Status = status,
             Title = title,
-            Detail = exception.GetBaseException().Message,
-            Instance = httpContext.Request.Path
+            Detail = httpContext.RequestServices
+    .GetRequiredService<IHostEnvironment>()
+    .IsDevelopment()
+        ? exception.GetBaseException().Message
+        : "An unexpected error occurred.",
+         Instance = httpContext.Request.Path
         };
         problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
 
