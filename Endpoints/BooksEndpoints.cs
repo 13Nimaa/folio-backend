@@ -277,10 +277,22 @@ public static class BooksEndpoints
 
 
         });
-        group.MapDelete("/{id}", async (int id, AppDbContext dbContext) =>
+        group.MapDelete("/{id}", async (int id, ClaimsPrincipal user, AppDbContext dbContext) =>
         {
+            var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
+
+            if (userIdClaim is null || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            // Admins may delete any book; users only their own. A book the caller
+            // does not own reports 404 (not 403) so IDs cannot be enumerated.
+            var isAdmin = user.IsInRole(UserRoles.Admin);
+
             var deletedCount = await dbContext.Books
-                .Where(book => book.Id == id)
+                .Where(book => book.Id == id &&
+                    (isAdmin || book.CreatedByUserId == userId))
                 .ExecuteDeleteAsync();
 
             return deletedCount == 0
@@ -289,7 +301,7 @@ public static class BooksEndpoints
                     title: "Book deletion failed.",
                     detail: $"No book with ID {id} exists.")
                 : Results.NoContent();
-        });
+        }).RequireAuthorization();
 
 
     }

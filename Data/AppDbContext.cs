@@ -44,7 +44,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<WishlistItem>()
             .HasOne(w => w.Book)
             .WithMany()
-            .HasForeignKey(w => w.BookId);
+            .HasForeignKey(w => w.BookId)
+            // Wishlist entries are pointers; removing a book cleans them up.
+            // (OrderItems above are Restrict — history is protected.)
+            .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<OrderItem>()
 .HasKey(x => new { x.OrderId, x.BookId });
 
@@ -57,7 +60,8 @@ public class AppDbContext : DbContext
             .HasOne(x => x.Book)
             .WithMany()
             .HasForeignKey(x => x.BookId)
-            ;
+            // Order history must never be silently rewritten by a book deletion.
+            .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Conversation>(entity =>
 {
     entity.HasKey(c => c.Id);

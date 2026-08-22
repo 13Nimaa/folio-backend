@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,6 +7,17 @@ namespace BooksProject.Handlers;
 
 public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
+    // SQLITE_CONSTRAINT (19): FK/unique/check violations. ExecuteDeleteAsync and
+    // other raw paths throw SqliteException directly; EF wraps it in DbUpdateException.
+    private static bool IsConstraintViolation(Exception exception) =>
+        exception switch
+        {
+            SqliteException sql => sql.SqliteErrorCode == 19,
+            DbUpdateException db when db.InnerException is SqliteException inner =>
+                inner.SqliteErrorCode == 19,
+            _ => false
+        };
+
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
@@ -22,6 +34,9 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
             BadHttpRequestException => (
                 StatusCodes.Status400BadRequest,
                 "The request could not be processed."),
+            _ when IsConstraintViolation(exception) => (
+                StatusCodes.Status409Conflict,
+                "The database rejected the requested change."),
             DbUpdateException => (
                 StatusCodes.Status409Conflict,
                 "The database rejected the requested change."),
