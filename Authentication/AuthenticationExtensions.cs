@@ -27,6 +27,9 @@ public static class AuthenticationExtensions
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
+                // Single Events instance: assigning twice would overwrite the
+                // first object and silently drop OnMessageReceived, breaking
+                // SignalR's access_token-in-query authentication.
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
@@ -41,29 +44,7 @@ public static class AuthenticationExtensions
                         }
 
                         return Task.CompletedTask;
-                    }
-                };
-                // Keep the short claim names ("sub", "email", "role") instead of
-                // letting them be remapped to the legacy XML URI claim types.
-                options.MapInboundClaims = false;
-
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidIssuer = jwtOptions.Issuer,
-                    ValidateAudience = true,
-                    ValidAudience = jwtOptions.Audience,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtOptions.Key)),
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.FromSeconds(30),
-                    NameClaimType = TokenService.EmailClaim,
-                    RoleClaimType = TokenService.RoleClaim
-                };
-
-                options.Events = new JwtBearerEvents
-                {
+                    },
                     OnChallenge = async context =>
                     {
                         context.HandleResponse();
@@ -97,6 +78,25 @@ public static class AuthenticationExtensions
                         context.Response.ContentType = "application/problem+json";
                         await context.Response.WriteAsJsonAsync(problem);
                     }
+                };
+
+                // Keep the short claim names ("sub", "email", "role") instead of
+                // letting them be remapped to the legacy XML URI claim types.
+                options.MapInboundClaims = false;
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwtOptions.Audience,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtOptions.Key)),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                    NameClaimType = TokenService.EmailClaim,
+                    RoleClaimType = TokenService.RoleClaim
                 };
             });
 

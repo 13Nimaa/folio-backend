@@ -20,6 +20,12 @@ public class AppDbContext : DbContext
     public DbSet<Message> Messages => Set<Message>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Token lookups are by value on every refresh; the unique index makes
+        // them indexed and guarantees a token value can never be duplicated.
+        modelBuilder.Entity<RefreshToken>()
+            .HasIndex(rt => rt.Token)
+            .IsUnique();
+
         modelBuilder.Entity<Book>()
             .HasOne(book => book.Genre)
             .WithMany(genre => genre.Books)

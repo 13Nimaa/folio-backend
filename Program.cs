@@ -29,6 +29,7 @@ builder.AddAppStoreDb();
 builder.AddJwtAuthentication();
 builder.Services.AddValidation();
 builder.Services.AddSignalR();
+builder.AddAuthRateLimiting();
 // Registers every AbstractValidator<T> in this assembly.
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -48,6 +49,7 @@ app.UseExceptionHandler();
 
 app.UseCors("frontend");
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -58,6 +60,5 @@ app.MapGenresEndpoint();
 app.MapWishlistEndpoints();
 app.MapUserEndpoints();
 app.MapOrderEndpoints();
-
 
 app.Run();

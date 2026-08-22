@@ -238,7 +238,7 @@ public static class BooksEndpoints
              createdBook
          );
      });
-        group.MapPut("/{id}", async (int id, UpdateBookDto updateBook, AppDbContext dbContext, ClaimsPrincipal user) =>
+        group.MapPut("/{id}", async (int id, UpdateBookDto updateBook, AppDbContext dbContext, ClaimsPrincipal user, IImageService imageService) =>
 
         {
             var userIdClaim = user.FindFirstValue(TokenService.SubClaim);
@@ -247,8 +247,9 @@ public static class BooksEndpoints
             {
                 return Results.Unauthorized();
             }
+
             var existingBook = await dbContext.Books.FindAsync(id);
-          
+
             if (existingBook is null)
             {
                 return Results.Problem(
@@ -256,26 +257,62 @@ public static class BooksEndpoints
                     title: "Book update failed.",
                     detail: $"No book with ID {id} exists.");
             }
-              if(existingBook.CreatedByUserId != userId)
+
+            // Same rule as DELETE: owner or Admin. Non-owners get 404 so
+            // book IDs cannot be enumerated.
+            if (existingBook.CreatedByUserId != userId && !user.IsInRole(UserRoles.Admin))
             {
-                return Results.Forbid();
+                return Results.Problem(
+                    statusCode: StatusCodes.Status404NotFound,
+                    title: "Book update failed.",
+                    detail: $"No book with ID {id} exists.");
             }
+
             existingBook.Title = updateBook.Title;
             existingBook.Description = updateBook.Description;
             existingBook.Price = updateBook.Price;
             existingBook.PublishedDate = updateBook.PublishedDate;
             existingBook.GenreId = updateBook.GenreId;
             existingBook.StockQuantity = updateBook.StockQuantity;
+
+            if (!string.IsNullOrWhiteSpace(updateBook.Author))
+            {
+                existingBook.Author = updateBook.Author.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(updateBook.Language))
+            {
+                existingBook.Language = updateBook.Language.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(updateBook.CoverImage))
+            {
+                existingBook.CoverImage = await imageService.UploadBase64ImageAsync(
+                    updateBook.CoverImage);
+            }
+
             await dbContext.SaveChangesAsync();
 
-            return Results.Ok();
+            // Return the persisted row so the client sees authoritative state
+            // (genre name resolved, cover URL, etc.) instead of an empty 200.
+            var updated = await dbContext.Books
+                .AsNoTracking()
+                .Where(b => b.Id == id)
+                .Select(b => new BookDetailsDto(
+                    b.Id,
+                    b.Title,
+                    b.Description,
+                    b.Price,
+                    b.PublishedDate,
+                    b.Genre.Name,
+                    b.Author,
+                    b.CoverImage,
+                    b.Language,
+                    b.StockQuantity
+                ))
+                .FirstAsync();
 
-
-
-
-
-
-
+            return Results.Ok(updated);
         });
         group.MapDelete("/{id}", async (int id, ClaimsPrincipal user, AppDbContext dbContext) =>
         {

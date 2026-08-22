@@ -52,6 +52,15 @@ public class TokenService(IOptions<JwtOptions> options)
     return Convert.ToBase64String(bytes);
 }
 
+    // Refresh tokens are stored hashed (SHA-256): a database leak must not
+    // yield usable session tokens. Lookup always hashes the presented value.
+    public static string HashRefreshToken(string rawToken)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
+
+        return Convert.ToHexString(bytes);
+    }
+
     public DateTime RefreshTokenExpiresAt =>
         DateTime.UtcNow.AddDays(jwtOptions.RefreshTokenExpiryDays);
 }

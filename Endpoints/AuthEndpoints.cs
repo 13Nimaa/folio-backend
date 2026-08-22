@@ -57,7 +57,7 @@ public static class AuthEndpoints
 
             RefreshToken refreshTokenEntity = new()
             {
-                Token = refreshToken,
+                Token = TokenService.HashRefreshToken(refreshToken),
                 UserId = user.Id,
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = tokenService.RefreshTokenExpiresAt
@@ -74,7 +74,7 @@ public static class AuthEndpoints
         user.ProfileImage,
         user.Role
     ), token, refreshToken, expiresAt));
-        });
+        }).RequireRateLimiting(RateLimitingExtensions.AuthPolicy);
 
         group.MapPost("/login", async (
             LoginDto login,
@@ -100,7 +100,7 @@ public static class AuthEndpoints
             var (token, expiresAt) = tokenService.CreateAccessToken(user);
             RefreshToken refreshTokenEntity = new()
             {
-                Token = refreshToken,
+                Token = TokenService.HashRefreshToken(refreshToken),
                 UserId = user.Id,
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = tokenService.RefreshTokenExpiresAt
@@ -118,13 +118,15 @@ public static class AuthEndpoints
 
         user.Role
     ), token, refreshToken, expiresAt));
-        });
+        }).RequireRateLimiting(RateLimitingExtensions.AuthPolicy);
         group.MapPost("/logout", async (
     LogoutRequestDto request,
     AppDbContext dbContext) =>
 {
+    var tokenHash = TokenService.HashRefreshToken(request.RefreshToken ?? "");
+
     var refreshToken = await dbContext.RefreshTokens
-        .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken);
+        .FirstOrDefaultAsync(rt => rt.Token == tokenHash);
 
     if (refreshToken is not null)
     {
@@ -142,38 +144,68 @@ public static class AuthEndpoints
     AppDbContext dbContext,
     TokenService tokenService) =>
 {
-    var refreshToken = await dbContext.RefreshTokens
-    .Include(rt => rt.User)
-    .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken);
-    if (refreshToken is null || !refreshToken.IsActive)
+    var tokenHash = TokenService.HashRefreshToken(request.RefreshToken ?? "");
+
+    var stored = await dbContext.RefreshTokens
+        .AsNoTracking()
+        .FirstOrDefaultAsync(rt => rt.Token == tokenHash);
+
+    if (stored is null || !stored.IsActive)
     {
         return Results.Problem(
             statusCode: StatusCodes.Status401Unauthorized,
             title: "Token refresh failed.",
             detail: "The refresh token is invalid, expired, or revoked.");
     }
-    var (accessToken, expiresAt) =
-        tokenService.CreateAccessToken(refreshToken.User);
-    refreshToken.RevokedAt = DateTime.UtcNow;
+
+    // Atomic single-use claim: the UPDATE only succeeds while RevokedAt is
+    // still null, so of N concurrent refreshes with one token exactly one
+    // wins; the rest are treated as replay and rejected.
+    var claimed = await dbContext.RefreshTokens
+        .Where(rt => rt.Id == stored.Id &&
+            rt.RevokedAt == null &&
+            rt.ExpiresAt > DateTime.UtcNow)
+        .ExecuteUpdateAsync(s =>
+            s.SetProperty(rt => rt.RevokedAt, DateTime.UtcNow));
+
+    if (claimed == 0)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status401Unauthorized,
+            title: "Token refresh failed.",
+            detail: "The refresh token is invalid, expired, or revoked.");
+    }
+
+    var user = await dbContext.Users.FindAsync(stored.UserId);
+
+    if (user is null)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status401Unauthorized,
+            title: "Token refresh failed.",
+            detail: "The refresh token is invalid, expired, or revoked.");
+    }
+
+    var (accessToken, expiresAt) = tokenService.CreateAccessToken(user);
     var newRefreshToken = tokenService.CreateRefreshToken();
 
-    var newRefreshTokenEntity = new RefreshToken
+    dbContext.RefreshTokens.Add(new RefreshToken
     {
-        Token = newRefreshToken,
-        UserId = refreshToken.UserId,
+        Token = TokenService.HashRefreshToken(newRefreshToken),
+        UserId = stored.UserId,
         CreatedAt = DateTime.UtcNow,
         ExpiresAt = tokenService.RefreshTokenExpiresAt
-    };
+    });
 
-    dbContext.RefreshTokens.Add(newRefreshTokenEntity);
     await dbContext.SaveChangesAsync();
+
     return Results.Ok(new AuthResponseDto(
            new UserDto(
-        refreshToken.User.Id,
-        refreshToken.User.Name,
-        refreshToken.User.Email,
-        refreshToken.User.ProfileImage,
-        refreshToken.User.Role
+        user.Id,
+        user.Name,
+        user.Email,
+        user.ProfileImage,
+        user.Role
     ),
 
         accessToken,
@@ -181,7 +213,7 @@ public static class AuthEndpoints
         expiresAt
     ));
 
-});
+}).RequireRateLimiting(RateLimitingExtensions.AuthPolicy);
 
         group.MapPut("/me", async (
             UpdateProfileDto update,
