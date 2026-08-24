@@ -42,7 +42,10 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 var app = builder.Build();
 
-app.MigrateDb();
+if (app.Environment.IsDevelopment())
+{
+    app.MigrateDb();
+}
 
 // Must run first so it can catch exceptions from everything after it.
 app.UseExceptionHandler();

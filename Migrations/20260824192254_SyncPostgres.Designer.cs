@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BooksProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260824191937_SyncPostgres")]
+    [Migration("20260824192254_SyncPostgres")]
     partial class SyncPostgres
     {
         /// <inheritdoc />
