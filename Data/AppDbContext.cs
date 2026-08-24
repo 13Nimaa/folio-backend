@@ -6,7 +6,10 @@ namespace BooksProject.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
+    {
+    }
 
     public DbSet<Book> Books { get; set; }
     public DbSet<Genre> Genres { get; set; }
@@ -18,30 +21,111 @@ public class AppDbContext : DbContext
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Token lookups are by value on every refresh; the unique index makes
-        // them indexed and guarantees a token value can never be duplicated.
+        // ============================================================
+        // Primary Keys / PostgreSQL Identity Columns
+        // ============================================================
+
+        modelBuilder.Entity<Book>()
+            .HasKey(b => b.Id);
+
+        modelBuilder.Entity<Book>()
+            .Property(b => b.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<Genre>()
+            .HasKey(g => g.Id);
+
+        modelBuilder.Entity<Genre>()
+            .Property(g => g.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<Author>()
+            .HasKey(a => a.Id);
+
+        modelBuilder.Entity<Author>()
+            .Property(a => a.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<User>()
+            .HasKey(u => u.Id);
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<Order>()
+            .HasKey(o => o.Id);
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<Conversation>()
+            .HasKey(c => c.Id);
+
+        modelBuilder.Entity<Conversation>()
+            .Property(c => c.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<Message>()
+            .HasKey(m => m.Id);
+
+        modelBuilder.Entity<Message>()
+            .Property(m => m.Id)
+            .ValueGeneratedOnAdd();
+
+        // ============================================================
+        // Refresh Tokens
+        // ============================================================
+
+        // Token lookups are performed by value on every refresh.
+        // Unique index makes them indexed and prevents duplicates.
         modelBuilder.Entity<RefreshToken>()
             .HasIndex(rt => rt.Token)
             .IsUnique();
+
+        // ============================================================
+        // Book -> Genre
+        // ============================================================
 
         modelBuilder.Entity<Book>()
             .HasOne(book => book.Genre)
             .WithMany(genre => genre.Books)
             .HasForeignKey(book => book.GenreId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // ============================================================
+        // Book -> CreatedByUser
+        // ============================================================
+
         modelBuilder.Entity<Book>()
-            .HasOne(b => b.CreatedByUser)
+            .HasOne(book => book.CreatedByUser)
             .WithMany()
-            .HasForeignKey(b => b.CreatedByUserId)
+            .HasForeignKey(book => book.CreatedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
-            
+
+        // ============================================================
+        // User
+        // ============================================================
+
         modelBuilder.Entity<User>()
             .HasIndex(user => user.Email)
             .IsUnique();
+
+        // ============================================================
+        // Wishlist
+        // ============================================================
+
         modelBuilder.Entity<WishlistItem>()
-.HasKey(w => new { w.UserId, w.BookId });
+            .HasKey(w => new
+            {
+                w.UserId,
+                w.BookId
+            });
+
         modelBuilder.Entity<WishlistItem>()
             .HasOne(w => w.User)
             .WithMany()
@@ -51,11 +135,18 @@ public class AppDbContext : DbContext
             .HasOne(w => w.Book)
             .WithMany()
             .HasForeignKey(w => w.BookId)
-            // Wishlist entries are pointers; removing a book cleans them up.
-            // (OrderItems above are Restrict — history is protected.)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // ============================================================
+        // Orders
+        // ============================================================
+
         modelBuilder.Entity<OrderItem>()
-.HasKey(x => new { x.OrderId, x.BookId });
+            .HasKey(x => new
+            {
+                x.OrderId,
+                x.BookId
+            });
 
         modelBuilder.Entity<Order>()
             .HasMany(x => x.Items)
@@ -66,37 +157,52 @@ public class AppDbContext : DbContext
             .HasOne(x => x.Book)
             .WithMany()
             .HasForeignKey(x => x.BookId)
-            // Order history must never be silently rewritten by a book deletion.
             .OnDelete(DeleteBehavior.Restrict);
+
+        // ============================================================
+        // Conversations
+        // ============================================================
+
         modelBuilder.Entity<Conversation>(entity =>
-{
-    entity.HasKey(c => c.Id);
+        {
+            entity.HasKey(c => c.Id);
 
-    entity.HasOne(c => c.Customer)
-        .WithMany()
-        .HasForeignKey(c => c.CustomerId)
-        .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(c => c.Id)
+                .ValueGeneratedOnAdd();
 
-    entity.HasOne(c => c.Publisher)
-        .WithMany()
-        .HasForeignKey(c => c.PublisherId)
-        .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(c => c.Customer)
+                .WithMany()
+                .HasForeignKey(c => c.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-    entity.HasMany(c => c.Messages)
-        .WithOne(m => m.Conversation)
-        .HasForeignKey(m => m.ConversationId)
-        .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(c => c.Publisher)
+                .WithMany()
+                .HasForeignKey(c => c.PublisherId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-    entity.HasIndex(c => new
-    {
-        c.CustomerId,
-        c.PublisherId
-    })
-    .IsUnique();
-});
+            entity.HasMany(c => c.Messages)
+                .WithOne(m => m.Conversation)
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(c => new
+            {
+                c.CustomerId,
+                c.PublisherId
+            })
+            .IsUnique();
+        });
+
+        // ============================================================
+        // Messages
+        // ============================================================
+
         modelBuilder.Entity<Message>(entity =>
         {
             entity.HasKey(m => m.Id);
+
+            entity.Property(m => m.Id)
+                .ValueGeneratedOnAdd();
 
             entity.Property(m => m.Content)
                 .IsRequired()
