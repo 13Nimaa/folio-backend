@@ -185,6 +185,19 @@ public static class OrderEndpoints
                     "Only pending orders can be cancelled.");
             }
 
+            var items = await dbContext.OrderItems
+                .Where(oi => oi.OrderId == order.Id)
+                .ToListAsync();
+
+            foreach (var item in items)
+            {
+                var book = await dbContext.Books.FindAsync(item.BookId);
+                if (book is not null)
+                {
+                    book.StockQuantity += item.Quantity;
+                }
+            }
+
             order.Status = OrderStatus.Cancelled;
 
             await dbContext.SaveChangesAsync();

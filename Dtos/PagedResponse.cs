@@ -2,7 +2,7 @@ namespace BooksProject.Dtos;
 
 public sealed record PagedResponse<T>(
     IReadOnlyList<T> Items,
-    int CurrentPage,
+    int Page,
     int PageSize,
     int TotalCount,
     int TotalPages,

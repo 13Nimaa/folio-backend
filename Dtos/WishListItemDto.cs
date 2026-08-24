@@ -3,6 +3,7 @@ namespace BooksProject.Dtos;
 public sealed record WishlistItemDto(
     int BookId,
     string Title,
+    string Author,
     string genre,
     string? coverImage,
     string? Description,

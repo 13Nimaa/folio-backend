@@ -11,6 +11,9 @@ public static class BooksEndpoints
 {
     private const string GetBookEndpointName = "GetBook";
 
+    private static string EscapeLike(string input) =>
+        input.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]");
+
     public static void MapBookEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/books");
@@ -56,7 +59,7 @@ public static class BooksEndpoints
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                string pattern = $"%{search.Trim()}%";
+                string pattern = $"%{EscapeLike(search.Trim())}%";
 
                 query = query.Where(book =>
                     EF.Functions.Like(book.Title, pattern) ||
@@ -150,11 +153,9 @@ public static class BooksEndpoints
                     book.Genre.Name,
                     book.Author,
                     book.CoverImage,
-
                     book.Language,
-                    book.StockQuantity
-
-
+                    book.StockQuantity,
+                    book.Rating
                 ))
                 .FirstOrDefaultAsync();
 
@@ -224,10 +225,9 @@ public static class BooksEndpoints
                  b.Genre.Name,
                  b.Author,
                  b.CoverImage,
- 
                  b.Language,
-                 b.StockQuantity
-
+                 b.StockQuantity,
+                 b.Rating
              ))
              .FirstAsync();
 
@@ -237,7 +237,7 @@ public static class BooksEndpoints
              new { id = book.Id },
              createdBook
          );
-     });
+     }).RequireAuthorization();
         group.MapPut("/{id}", async (int id, UpdateBookDto updateBook, AppDbContext dbContext, ClaimsPrincipal user, IImageService imageService) =>
 
         {
@@ -308,12 +308,13 @@ public static class BooksEndpoints
                     b.Author,
                     b.CoverImage,
                     b.Language,
-                    b.StockQuantity
+                    b.StockQuantity,
+                    b.Rating
                 ))
                 .FirstAsync();
 
             return Results.Ok(updated);
-        });
+        }).RequireAuthorization();
         group.MapDelete("/{id}", async (int id, ClaimsPrincipal user, AppDbContext dbContext) =>
         {
             var userIdClaim = user.FindFirstValue(TokenService.SubClaim);

@@ -119,6 +119,7 @@ public static class WishlistEndpoints
                 (
                    w.BookId,
                    w.Book.Title,
+                   w.Book.Author,
                    w.Book.Genre.Name,
                    w.Book.CoverImage,
                    w.Book.Description,

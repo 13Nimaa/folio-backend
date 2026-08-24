@@ -11,8 +11,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
     {
+        var origins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>()
+            ?? ["http://localhost:3000"];
+
         policy
-            .WithOrigins("http://localhost:3000")
+            .WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -60,5 +65,10 @@ app.MapGenresEndpoint();
 app.MapWishlistEndpoints();
 app.MapUserEndpoints();
 app.MapOrderEndpoints();
+app.MapConversationEndpoints();
+
+// Real-time chat: the JS client negotiates /hubs/chat before opening the
+// transport — without this the negotiate request 404s and chat goes offline.
+app.MapHub<BooksProject.Hubs.ChatHub>("/hubs/chat");
 
 app.Run();
