@@ -12,14 +12,15 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --ingroup appgroup appuser
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY --from=build --chown=appuser:appgroup /app/publish .
+COPY --from=build --chown=app:app /app/publish .
 
-RUN mkdir -p /app/data && chown appuser:appgroup /app/data
+RUN mkdir -p /app/data && chown app:app /app/data
 
-USER appuser
+USER app
 
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_ENVIRONMENT=Production \
