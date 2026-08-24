@@ -14,13 +14,24 @@ public static class DataExtensions
 
         dbContext.Database.Migrate();
     }
+
     public static void AddAppStoreDb(this WebApplicationBuilder builder)
     {
-        var connString = builder.Configuration.GetConnectionString("BookStore");
+        var connString = builder.Configuration
+            .GetConnectionString("BookStore");
 
-        builder.Services.AddSqlite<AppDbContext>(
-            connString,
-            optionsAction: options => options.UseSeeding((context, _) =>
+        builder.Services.AddDbContext<AppDbContext>(options =>
+        {
+            if (builder.Environment.IsProduction())
+            {
+                options.UseNpgsql(connString);
+            }
+            else
+            {
+                options.UseSqlite(connString);
+            }
+
+            options.UseSeeding((context, _) =>
             {
                 string[] genreNames =
                 [
@@ -51,7 +62,7 @@ public static class DataExtensions
                     context.Set<Genre>().AddRange(newGenres);
                     context.SaveChanges();
                 }
-            })
-        );
+            });
+        });
     }
 }

@@ -22,13 +22,11 @@ RUN mkdir -p /app/data && chown app:app /app/data
 
 USER app
 
-ENV ASPNETCORE_HTTP_PORTS=8080 \
-    ASPNETCORE_ENVIRONMENT=Production \
-    ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -sf http://localhost:8080/health || exit 1
+  CMD curl -sf http://localhost:${PORT:-8080}/health || exit 1
 
 ENTRYPOINT ["dotnet", "BooksProject.dll"]
