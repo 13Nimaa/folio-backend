@@ -1,6 +1,6 @@
 using BooksProject.Models;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace BooksProject.Data;
 
 public static class DataExtensions
@@ -24,7 +24,9 @@ public static class DataExtensions
         {
             if (builder.Environment.IsProduction())
             {
-                options.UseNpgsql(connString);
+                options.UseNpgsql(connString)
+                   .ConfigureWarnings(warnings =>
+                warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
             }
             else
             {
